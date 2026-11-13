@@ -1,0 +1,5 @@
+{
+  "name": "ClearPath.Runtime",
+  "references": ["Zenject", "Unity.InputSystem", "Unity.ugui"],
+  "autoReferenced": true
+}

@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bdf1958f770432b4cb5b7596006de15c, type: 3}
+  m_Name: Palette
+  m_EditorClassIdentifier: 
+  Ground: {fileID: 2100000, guid: 7af771edf5e16ca4fab18aba516b0c49, type: 2}
+  Path: {fileID: 2100000, guid: b6c47ecf822469a459af0bf73dbe3be8, type: 2}
+  Player: {fileID: 2100000, guid: e1a4550dbcc97af4e8a862933cbb19a7, type: 2}
+  Obstacle: {fileID: 2100000, guid: c59b0d1d5d8e9fa4ba15e4607720f71a, type: 2}
+  Infected: {fileID: 2100000, guid: 768534b9e3783a54cbe9d08ba850d980, type: 2}
+  Door: {fileID: 2100000, guid: c0b94c021bc94844f96467108719d86e, type: 2}
+  Frame: {fileID: 2100000, guid: cb1d470fbb3e7834f9caf84c18161fa6, type: 2}
+  Effect: {fileID: 2100000, guid: d3a88350e3ac4c24790e836bec2b2bc0, type: 2}
+  Foliage: {fileID: 2100000, guid: 2bea1fd69da44c6f937a53e03ce97d9d, type: 2}
+  Stone: {fileID: 2100000, guid: 8603efccf1e7409296644c23ca66ec5b, type: 2}
+  Sparks: {fileID: 2100000, guid: d86f8f16cf684c5f9ff660408a6ffecb, type: 2}
+  ShotTrail: {fileID: 2100000, guid: 9193fc74dbc44029b57452e6f2e4282f, type: 2}
+  BushModels:
+  - {fileID: 919132149155446097, guid: 230af48882f54f04eb1a24ab6276b0c4, type: 3}
+  - {fileID: 919132149155446097, guid: 4ed554a3a5a7a454ab6dc7ecb91f45bf, type: 3}
+  - {fileID: 919132149155446097, guid: 097b8ffd97b835242bcbd318a17c776e, type: 3}
+  RockModel: {fileID: 919132149155446097, guid: ef427868d0ec6794781d4f0743d8a7a4, type: 3}
+  GateFrame: {fileID: 919132149155446097, guid: ce7792dd6c1867d42bd806f80dfc0ad3, type: 3}
+  GatePanel: {fileID: 919132149155446097, guid: 58dbb64e50ea9fc45ab352cc99386584, type: 3}
+  ShotSound: {fileID: 8300000, guid: aa9461ccfd314fd6a33fc88adb93e540, type: 3}
+  BreakSound: {fileID: 8300000, guid: 18ecf58c13f7476e91ad256c87285eaf, type: 3}
+  VictorySound: {fileID: 8300000, guid: c5a20e09bf63425b8f7274032e5807ed, type: 3}
+  DefeatSound: {fileID: 8300000, guid: 52845eb3102748279ad4712d7932c440, type: 3}
+  Charge: {fileID: 2100000, guid: dc09d462a67b454b8bcc67ca130a6b90, type: 2}
+  BackgroundMusic: {fileID: 8300000, guid: 78d870b39cba4a4a861d8c8d5f38d121, type: 3}
+  MusicOutput: {fileID: 24300002, guid: cc56c850bc28449190ee57ae13107b82, type: 2}
+  EffectsOutput: {fileID: 24300003, guid: cc56c850bc28449190ee57ae13107b82, type: 2}
+  Undergrowth: {fileID: 919132149155446097, guid: 40444dcadf7055e4080c801fbe7478b2, type: 3}
+  BackdropTree: {fileID: 919132149155446097, guid: ddbec67a147d14b47b95970fb6eaa77e, type: 3}

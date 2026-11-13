@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a8cfcc8287c83444c8b8bfca7b7ca56a, type: 3}
+  m_Name: DefaultBalance
+  m_EditorClassIdentifier: 
+  CriticalVolume: 0.035
+  MinimumShotVolume: 0.009
+  ChargePerSecond: 0.095
+  ReserveFraction: 0.5
+  MoveSpeed: 1
+  Clearance: 0.24
+  PauseMovementWhileCharging: 0
+  PlayerRadiusScale: 1
+  ReactionTime: 1
+  ShotSpeed: 15
+  BaseBlastRadius: 0.35
+  BlastPerShotRadius: 2.5
+  ChargedBlastBonus: 6
+  InfectionLinkGap: 3.42
+  InfectionStepDelay: 0.09
+  InfectionFuse: 0.22

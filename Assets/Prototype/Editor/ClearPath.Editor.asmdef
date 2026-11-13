@@ -1,0 +1,5 @@
+{
+  "name": "ClearPath.Editor",
+  "references": ["ClearPath.Runtime", "Zenject", "Unity.InputSystem", "Unity.ugui"],
+  "includePlatforms": ["Editor"]
+}
