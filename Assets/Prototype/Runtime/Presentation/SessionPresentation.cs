@@ -54,8 +54,9 @@ namespace ClearPath
             bool charging, bool busy)
         {
             var balance = level.Balance;
-            world.Player.Present(movement.Z, balance.PlayerRadius(budget.Remaining), budget.Charged);
-            world.UpdatePath(balance.PlayerRadius(budget.Remaining + budget.Charged));
+            float radius = balance.PlayerRadius(budget.Remaining);
+            world.Player.Present(movement.Z, radius, budget.Charged, movement.IsMoving);
+            world.UpdatePath(radius);
             aim.Present(movement.Z, budget.Remaining, budget.Charged, level);
 
             string hint = "HOLD TO CHARGE  /  RELEASE TO FIRE";

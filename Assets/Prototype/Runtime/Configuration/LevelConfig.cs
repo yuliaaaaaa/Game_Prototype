@@ -33,7 +33,7 @@ namespace ClearPath
             if (RadiusRange.x < 0.2f || RadiusRange.y > 0.8f || RadiusRange.y < RadiusRange.x)
             { reason = "Obstacle radii must be ordered and between 0.2 and 0.8 meters."; return false; }
             if (Balance.ChargePerSecond <= 0 || Balance.MoveSpeed <= 0 || Balance.ShotSpeed <= 0 || Balance.CriticalVolume <= 0 || Balance.MinimumShotVolume <= 0 ||
-                Balance.ReserveFraction < 0 || Balance.PlayerRadiusScale <= 0 || Balance.ReactionTime <= 0)
+                Balance.ReserveFraction < 0 || Balance.MinimumReserveVolume < 0 || Balance.PlayerRadiusScale <= 0 || Balance.ReactionTime <= 0)
             { reason = "Speeds and critical volume must be positive."; return false; }
             reason = null; return true;
         }

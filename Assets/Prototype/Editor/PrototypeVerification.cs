@@ -36,10 +36,6 @@ namespace ClearPath.Editor
                 obstacles = new List<ObstacleState> { new ObstacleState(new Vector2(0, 5), 0.4f), new ObstacleState(new Vector2(0, 9), 0.4f) };
                 Check(corridor.FirstHit(Vector2.zero, new Vector2(0, 15), 0.2f, obstacles, out _) == 0, "Swept projectile hits the first obstacle even in a long step");
                 var infection = new InfectionSolver();
-                obstacles = new List<ObstacleState> { new ObstacleState(Vector2.zero, 0.4f), new ObstacleState(new Vector2(0.9f, 0), 0.4f), new ObstacleState(new Vector2(1.8f, 0), 0.4f), new ObstacleState(new Vector2(0, 2), 0.1f) };
-                var hits = infection.Solve(0, Vector2.zero, 1.2f, 0.2f, obstacles);
-                Check(hits.Count == 2 && hits[1].Depth == 1, "Connected infection respects the global blast envelope");
-                Check(infection.Solve(0, Vector2.zero, 3, 0.2f, obstacles).Count == 3, "Disconnected obstacles are not infected inside the radius");
                 var state = new SessionStateMachine(); state.Finish(true); Check(state.State == SessionState.Ready, "Cannot win before starting");
                 state.Start(); state.Finish(false); Check(!state.Start() && state.State == SessionState.Lost, "Terminal state requires reset");
                 var catalog = AssetDatabase.LoadAssetAtPath<LevelCatalog>(PrototypeBuilder.Root + "/Configs/LevelCatalog.asset");
@@ -50,9 +46,9 @@ namespace ClearPath.Editor
                 float shotRadius = ResourceBudget.Radius(smallShot);
                 Check(corridor.FirstHit(origin, new Vector2(0, 10), shotRadius, sideBlocker, out _) < 0,
                     "Straight small shot misses the obstacle blocking the player's edge");
-                var aimedEnd = corridor.ShotEnd(origin.y, catalog.Levels[0], 0.343f, smallShot, sideBlocker);
-                Check(corridor.FirstHit(origin, aimedEnd, shotRadius, sideBlocker, out _) == 0,
+                Check(corridor.ShotTarget(origin.y, 10, balance.PlayerRadius(0.343f), smallShot, sideBlocker, out _) == 0,
                     "The same small shot can clear the side blocker with automatic aim");
+                VerifyShotChain(corridor, infection, balance);
                 foreach (var level in catalog.Levels) VerifyReference(level, corridor, infection);
                 Write("DomainResults.txt");
                 Debug.Log("Clear Path domain verification passed: " + results.Count + " assertions.");
@@ -87,34 +83,41 @@ namespace ClearPath.Editor
             {
                 z = corridor.ReachableZ(z, level.Length, level.Balance.PlayerRadius(volume), level.Balance.Clearance, obstacles);
                 volume -= shot; total += shot;
-                var end = corridor.ShotEnd(z, level, volume, shot, obstacles);
-                int seed = corridor.FirstHit(new Vector2(0, z), end, ResourceBudget.Radius(shot), obstacles, out var impact);
-                foreach (var hit in infection.Solve(seed, impact, level.Balance.BlastRadius(shot), level.Balance.InfectionLinkGap, obstacles)) obstacles[hit.Index].Alive = false;
+                float radius = level.Balance.PlayerRadius(volume);
+                int seed = corridor.ShotTarget(z, level.Length, radius, shot, obstacles, out var impact);
+                foreach (var hit in infection.Solve(seed, impact, shot, level.Balance, z, level.Length, radius, obstacles))
+                    obstacles[hit.Index].Alive = false;
             }
             z = corridor.ReachableZ(z, level.Length, level.Balance.PlayerRadius(volume), level.Balance.Clearance, obstacles);
             Check(Near(z, level.Length), level.name + " automatically planned shots clear the whole corridor");
-            Check(Near(volume - level.Balance.CriticalVolume, total * level.Balance.ReserveFraction),
-                $"{level.name} retains its {level.Balance.ReserveFraction:P0} spending reserve above critical");
-            if (level.ThicketCount > 0) VerifyThicket(level, layout, corridor, infection);
+            float reserve = Mathf.Max(total * level.Balance.ReserveFraction, level.Balance.MinimumReserveVolume);
+            Check(Near(volume - level.Balance.CriticalVolume, reserve),
+                $"{level.name} retains its configured spending reserve above critical");
         }
 
-        static void VerifyThicket(LevelConfig level, GeneratedLevel layout, CorridorSolver corridor, InfectionSolver infection)
+        static void VerifyShotChain(CorridorSolver corridor, InfectionSolver infection, BalanceConfig balance)
         {
-            float centerZ = 3 + (level.Length - 6) * 0.5f / level.ThicketCount;
-            var states = layout.CreateStates();
-            foreach (var obstacle in states)
-                if (Mathf.Abs(obstacle.Position.y - centerZ) > 1.4f) obstacle.Alive = false;
-
-            var origin = new Vector2(0, centerZ - 2.5f);
-            var end = new Vector2(0, centerZ + 2.5f);
-            float small = level.Balance.MinimumShotVolume;
-            float large = small * 12;
-            int smallSeed = corridor.FirstHit(origin, end, ResourceBudget.Radius(small), states, out var smallImpact);
-            int largeSeed = corridor.FirstHit(origin, end, ResourceBudget.Radius(large), states, out var largeImpact);
-            int smallHits = infection.Solve(smallSeed, smallImpact, level.Balance.BlastRadius(small), level.Balance.InfectionLinkGap, states).Count;
-            int largeHits = infection.Solve(largeSeed, largeImpact, level.Balance.BlastRadius(large), level.Balance.InfectionLinkGap, states).Count;
-            Check(smallHits > 0 && largeHits >= smallHits * 2,
-                $"{level.name} dense group rewards a charged shot ({largeHits} hits versus {smallHits})");
+            const float playerRadius = 0.4f;
+            var states = new[]
+            {
+                new ObstacleState(new Vector2(0.85f, 1), 0.4f),
+                new ObstacleState(new Vector2(0, 2), 0.4f),
+                new ObstacleState(new Vector2(0, 3.5f), 0.4f),
+                new ObstacleState(new Vector2(0, 5), 0.4f),
+                new ObstacleState(new Vector2(0.85f, 3), 0.4f)
+            };
+            float small = balance.MinimumShotVolume;
+            float large = Mathf.Max(small * 16, 0.03f);
+            int seed = corridor.ShotTarget(0, 8, playerRadius, small, states, out var impact);
+            Check(seed == 1, "Auto aim skips the closer roadside obstacle");
+            Check(infection.Solve(seed, impact, small, balance, 0, 8, playerRadius, states).Count == 1,
+                "A weak shot clears just the first blocker");
+            seed = corridor.ShotTarget(0, 8, playerRadius, large, states, out impact);
+            var hits = infection.Solve(seed, impact, large, balance, 0, 8, playerRadius, states);
+            Check(hits.Select(hit => hit.Index).SequenceEqual(new[] { 1, 2, 3 }) && hits[2].Depth > hits[1].Depth,
+                "A charged shot spreads behind the first blocker and spares roadside obstacles");
+            Check(corridor.ShotTarget(0, 8, playerRadius, large, new[] { states[0], states[4] }, out _) < 0,
+                "No shot target is selected when the route is clear");
         }
         [MenuItem("Clear Path/Verify session in Play Mode")]
         public static void VerifySession()
@@ -220,6 +223,10 @@ namespace ClearPath.Editor
                 Check(session.Movement.Z > stoppedAt, "Release resumes movement while the shot is active");
                 session.Restart(); session.StartGame(); session.BeginCharge(); session.Advance(0.01f); session.ReleaseCharge();
                 Check(!session.IsBusy && Near(session.Budget.Remaining, session.Budget.Initial), "Tiny tap is refunded");
+                levelState.Reset(Array.Empty<ObstaclePlacement>());
+                session.BeginCharge(); session.Advance(0.2f); session.ReleaseCharge();
+                Check(!session.IsBusy && Near(session.Budget.Remaining, session.Budget.Initial),
+                    "A charged shot without a threatening obstacle is refunded");
                 session.BeginCharge(); session.Advance(0.1f); session.SetSuspended(true);
                 Check(!session.IsCharging && Near(session.Budget.Remaining, session.Budget.Initial), "Backgrounding cancels and refunds charge");
                 VerifyChargeRefund(session, levelState);
@@ -229,12 +236,12 @@ namespace ClearPath.Editor
                 session.Restart(); session.StartGame(); session.Advance(2); session.BeginCharge(); session.Advance(0.5f); session.ReleaseCharge(); session.Restart();
                 Check(!session.IsBusy && session.State == SessionState.Ready && Near(session.Budget.Remaining, session.Budget.Initial), "Restart clears an in-flight projectile and resource state");
                 session.StartGame();
-                session.Budget.Transfer(session.Budget.Remaining - session.Budget.Critical - 0.005f); session.Budget.Release();
+                session.Budget.Transfer(session.Budget.Remaining - session.Budget.Critical - session.Level.Balance.MinimumShotVolume * 0.5f); session.Budget.Release();
                 StepUntil(session, () => session.State == SessionState.Lost, 2000);
                 Check(session.State == SessionState.Lost, "Blocked player with insufficient ammunition loses");
                 session.Restart();
                 levelState.Reset(Array.Empty<ObstaclePlacement>());
-                session.Budget.Transfer(session.Budget.Remaining - session.Budget.Critical - 0.005f); session.Budget.Release(); session.StartGame();
+                session.Budget.Transfer(session.Budget.Remaining - session.Budget.Critical - session.Level.Balance.MinimumShotVolume * 0.5f); session.Budget.Release(); session.StartGame();
                 StepUntil(session, () => session.State == SessionState.Won, 3000);
                 Check(session.State == SessionState.Won, "Low ammunition does not cause defeat on a cleared path");
                 Write("SessionResults.txt"); Debug.Log("Clear Path session verification passed: " + results.Count + " assertions.");
@@ -334,11 +341,13 @@ namespace ClearPath.Editor
             session.Restart();
             session.StartGame();
             float radius = session.Level.Balance.PlayerRadius(session.Budget.Initial);
-            levelState.Reset(new[] { new ObstaclePlacement(new Vector2(radius + 0.4f, 4), 0.4f, 1) });
+            float contact = 4 - radius - 0.4f;
+            levelState.Reset(new[] { new ObstaclePlacement(new Vector2(0, 4), 0.4f, 1) });
             StepUntil(session, () => !session.Movement.IsMoving, 1000, true);
             float stop = session.Movement.Z;
             session.BeginCharge();
-            session.Advance(0.3f);
+            session.Advance(1);
+            Check(session.Movement.Z > contact, "A shrinking ball can advance while charging");
             session.SetSuspended(true);
             Check(Near(session.Movement.Z, stop) && Near(session.Budget.Remaining, session.Budget.Initial),
                 "Refunding a charge cannot leave a restored player inside a narrow passage");

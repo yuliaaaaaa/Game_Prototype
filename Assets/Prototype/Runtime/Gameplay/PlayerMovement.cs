@@ -36,8 +36,17 @@ namespace ClearPath
                 target = contact.y;
             }
 
-            IsMoving = target - Z > 0.005f;
-            Z = Mathf.MoveTowards(Z, target, level.Balance.MoveSpeed * dt);
+            float nextZ = Mathf.MoveTowards(Z, target, level.Balance.MoveSpeed * dt);
+            IsMoving = nextZ > Z;
+            Z = nextZ;
+        }
+
+        public void FitRestoredRadius(float fromZ, LevelConfig level, float volume)
+        {
+            float radius = level.Balance.PlayerRadius(volume);
+            if (!TouchesObstacle(Z, radius)) return;
+            Z = corridor.ReachableZ(fromZ, Z, radius, level.Balance.Clearance, world.Obstacles);
+            Stop();
         }
         public void Stop() => IsMoving = false;
     }

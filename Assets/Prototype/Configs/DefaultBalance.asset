@@ -13,18 +13,19 @@ MonoBehaviour:
   m_Name: DefaultBalance
   m_EditorClassIdentifier: 
   CriticalVolume: 0.035
-  MinimumShotVolume: 0.009
-  ChargePerSecond: 0.095
+  MinimumShotVolume: 0.001
+  ChargePerSecond: 0.015
   ReserveFraction: 0.5
+  MinimumReserveVolume: 0.04
   MoveSpeed: 1
-  Clearance: 0.24
+  Clearance: 0.005
   PauseMovementWhileCharging: 0
   PlayerRadiusScale: 1
   ReactionTime: 1
   ShotSpeed: 15
   BaseBlastRadius: 0.35
   BlastPerShotRadius: 2.5
-  ChargedBlastBonus: 6
-  InfectionLinkGap: 3.42
+  ChargedBlastBonus: 12
+  InfectionLinkGap: 0.35
   InfectionStepDelay: 0.09
   InfectionFuse: 0.22

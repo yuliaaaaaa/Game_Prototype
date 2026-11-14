@@ -21,7 +21,8 @@ namespace ClearPath
         {
             Clear(); if (impact.Obstacle < 0) return;
             float radius = balance.BlastRadius(impact.Volume);
-            hits = solver.Solve(impact.Obstacle, impact.Position, radius, balance.InfectionLinkGap, world.Obstacles);
+            hits = solver.Solve(impact.Obstacle, impact.Position, impact.Volume, balance,
+                impact.FromZ, impact.TargetZ, impact.PlayerRadius, world.Obstacles);
             ImpactStarted?.Invoke(impact.Position, radius);
         }
         public void Tick(float dt, BalanceConfig balance)

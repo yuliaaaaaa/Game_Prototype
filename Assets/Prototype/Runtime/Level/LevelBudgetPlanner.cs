@@ -25,9 +25,7 @@ namespace ClearPath
                     float maxShot = Mathf.Min(0.45f, remaining - config.Balance.CriticalVolume - 0.001f);
                     for (float shot = config.Balance.MinimumShotVolume * 1.05f; shot <= maxShot; shot *= 1.6f)
                     {
-                        var end = corridor.ShotEnd(z, config, remaining - shot, shot, states);
-                        int seed = corridor.FirstHit(new Vector2(0, z), end, ResourceBudget.Radius(shot), states, out var impact);
-                        var hits = infection.Solve(seed, impact, config.Balance.BlastRadius(shot), config.Balance.InfectionLinkGap, states);
+                        var hits = ShotHits(config, z, remaining - shot, shot, states);
                         if (hits.Count == 0) continue;
                         foreach (var hit in hits) states[hit.Index].Alive = false;
                         float next = corridor.ReachableZ(z, config.Length, config.Balance.PlayerRadius(remaining - shot), config.Balance.Clearance, states);
@@ -42,7 +40,8 @@ namespace ClearPath
                 }
                 if (!reached) { initial *= 1.2f; if (initial > 3) break; continue; }
                 float cost = initial - remaining;
-                float calculated = config.Balance.CriticalVolume + cost * (1 + config.Balance.ReserveFraction);
+                float reserve = Mathf.Max(cost * config.Balance.ReserveFraction, config.Balance.MinimumReserveVolume);
+                float calculated = config.Balance.CriticalVolume + cost + reserve;
                 if (shots.Count > 0 && Replay(config, placements, calculated, shots))
                 { initial = calculated; solution = shots.ToArray(); return true; }
                 initial = calculated;
@@ -58,11 +57,18 @@ namespace ClearPath
                 if (z >= config.Length - 0.01f) return false;
                 volume -= shot;
                 if (volume <= config.Balance.CriticalVolume) return false;
-                var end = corridor.ShotEnd(z, config, volume, shot, states);
-                int seed = corridor.FirstHit(new Vector2(0, z), end, ResourceBudget.Radius(shot), states, out var impact);
-                foreach (var hit in infection.Solve(seed, impact, config.Balance.BlastRadius(shot), config.Balance.InfectionLinkGap, states)) states[hit.Index].Alive = false;
+                var hits = ShotHits(config, z, volume, shot, states);
+                if (hits.Count == 0) return false;
+                foreach (var hit in hits) states[hit.Index].Alive = false;
             }
             return corridor.ReachableZ(z, config.Length, config.Balance.PlayerRadius(volume), config.Balance.Clearance, states) >= config.Length - 0.01f;
+        }
+
+        List<InfectionHit> ShotHits(LevelConfig config, float z, float remaining, float shot, List<ObstacleState> states)
+        {
+            float radius = config.Balance.PlayerRadius(remaining);
+            int seed = corridor.ShotTarget(z, config.Length, radius, shot, states, out var impact);
+            return infection.Solve(seed, impact, shot, config.Balance, z, config.Length, radius, states);
         }
         static List<ObstacleState> States(ObstaclePlacement[] placements)
         {

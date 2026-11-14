@@ -15,34 +15,43 @@ namespace ClearPath
             for (int i = 0; i < obstacles.Count; i++)
             {
                 var obstacle = obstacles[i];
-                if (!obstacle.Alive) continue;
-                float combined = radius + obstacle.Radius;
-                float x = Mathf.Abs(obstacle.Position.x);
-                if (x > combined) continue;
-                float half = Mathf.Sqrt(combined * combined - x * x);
-                if (obstacle.Position.y + half < fromZ) continue;
-                float stop = Mathf.Max(fromZ, obstacle.Position.y - half - clearance);
-                if (stop >= result) continue;
+                if (!TryGetContactZ(obstacle, fromZ, targetZ, radius, out float contactZ)) continue;
+                float stop = Mathf.Max(fromZ, contactZ - clearance);
+                if (stop > result || (stop == result && blocker >= 0)) continue;
                 result = stop;
                 blocker = i;
             }
             return result;
         }
 
-        public Vector2 ShotEnd(float fromZ, LevelConfig level, float remainingVolume, float shotVolume, IReadOnlyList<ObstacleState> obstacles)
+        public static bool TryGetContactZ(ObstacleState obstacle, float fromZ, float targetZ, float radius, out float contactZ)
         {
-            float endZ = level.Length + 2;
-            ReachableZ(fromZ, level.Length, level.Balance.PlayerRadius(remainingVolume), level.Balance.Clearance, obstacles, out int blocker);
-            if (blocker < 0) return new Vector2(0, endZ);
+            contactZ = 0;
+            if (!obstacle.Alive) return false;
+            float combined = radius + obstacle.Radius;
+            float x = obstacle.Position.x;
+            float longitudinalSq = combined * combined - x * x;
+            if (longitudinalSq < 0) return false;
+            float half = Mathf.Sqrt(longitudinalSq);
+            contactZ = obstacle.Position.y - half;
+            return contactZ <= targetZ && obstacle.Position.y + half >= fromZ;
+        }
 
+        public int ShotTarget(float fromZ, float targetZ, float playerRadius, float shotVolume,
+            IReadOnlyList<ObstacleState> obstacles, out Vector2 impact)
+        {
+            ReachableZ(fromZ, targetZ, playerRadius, 0, obstacles, out int blocker);
+            var origin = new Vector2(0, fromZ);
+            if (blocker < 0)
+            {
+                impact = new Vector2(0, targetZ);
+                return -1;
+            }
             var obstacle = obstacles[blocker];
-            float hitRadius = obstacle.Radius + ResourceBudget.Radius(shotVolume);
-            if (Mathf.Abs(obstacle.Position.x) < hitRadius || obstacle.Position.y <= fromZ)
-                return new Vector2(0, endZ);
-
-            float contactX = obstacle.Position.x - Mathf.Sign(obstacle.Position.x) * hitRadius * 0.9f;
-            float endX = contactX * (endZ - fromZ) / (obstacle.Position.y - fromZ);
-            return new Vector2(endX, endZ);
+            float contactDistance = Mathf.Max(0, Vector2.Distance(origin, obstacle.Position)
+                - obstacle.Radius - ResourceBudget.Radius(shotVolume));
+            impact = Vector2.MoveTowards(origin, obstacle.Position, contactDistance);
+            return blocker;
         }
 
         public int FirstHit(Vector2 from, Vector2 to, float radius, IReadOnlyList<ObstacleState> obstacles, out Vector2 hit)

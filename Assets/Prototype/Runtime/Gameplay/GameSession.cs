@@ -18,6 +18,7 @@ namespace ClearPath
         readonly LevelGenerator generator;
         readonly SessionPresentation presentation;
         bool charging, suspended, disposed;
+        float chargeStartZ;
         float timeScaleBeforePause;
         int inputFrame;
         public LevelConfig Level { get; private set; }
@@ -88,6 +89,7 @@ namespace ClearPath
         {
             if (State != SessionState.Playing || suspended || IsPaused || IsBusy || charging) return;
             if (!budget.CanAfford(Level.Balance.MinimumShotVolume)) return;
+            chargeStartZ = movement.Z;
             charging = true;
             if (Level.Balance.PauseMovementWhileCharging) movement.Stop();
         }
@@ -95,11 +97,22 @@ namespace ClearPath
         {
             if (!charging) return;
             charging = false;
-            if (budget.Charged < Level.Balance.MinimumShotVolume) { budget.Cancel(); return; }
-            projectiles.Launch(movement.Z, budget.Remaining, budget.Release(), Level);
+            if (budget.Charged < Level.Balance.MinimumShotVolume ||
+                !projectiles.Launch(movement.Z, budget.Remaining, budget.Charged, Level))
+            {
+                CancelCharge();
+                return;
+            }
+            budget.Release();
             presentation.Shot();
         }
-        public void CancelCharge() { charging = false; budget.Cancel(); }
+        public void CancelCharge()
+        {
+            charging = false;
+            if (budget.Charged <= 0) return;
+            budget.Cancel();
+            movement.FitRestoredRadius(chargeStartZ, Level, budget.Remaining);
+        }
         public void SetSuspended(bool value) { suspended = value; if (value) CancelCharge(); }
         public void Tick()
         {
@@ -124,7 +137,7 @@ namespace ClearPath
             projectiles.Tick(dt, Level); infection.Tick(dt, Level.Balance);
             float previousZ = movement.Z;
             if (!(charging && Level.Balance.PauseMovementWhileCharging))
-                movement.Tick(dt, Level, budget.Remaining + budget.Charged, charging || IsBusy);
+                movement.Tick(dt, Level, budget.Remaining, charging || IsBusy);
             else movement.Stop();
             if (CheckCollision(previousZ)) return;
             presentation.UpdateGate(movement.Z);
@@ -144,7 +157,7 @@ namespace ClearPath
         void Finish(bool won, string reason)
         {
             charging = false;
-            if (won) budget.Cancel(); else budget.Release();
+            if (won) CancelCharge(); else budget.Release();
             projectiles.Clear(); infection.Clear(); movement.Stop();
             state.Finish(won);
             Present();

@@ -9,6 +9,8 @@ namespace ClearPath
         [SerializeField] Transform charge;
         [SerializeField] Transform[] motes;
         float chargeRadius;
+        float hop;
+        float hopTarget;
         Renderer surface;
         MaterialPropertyBlock shimmer;
         static readonly int Emission = Shader.PropertyToID("_EmissionColor");
@@ -32,10 +34,11 @@ namespace ClearPath
             detail.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             return detail.transform;
         }
-        public void Present(float z, float radius, float shotVolume)
+        public void Present(float z, float radius, float shotVolume, bool moving = false)
         {
             transform.position = new Vector3(0, 0, z);
-            float hop = Mathf.Pow(Mathf.Abs(Mathf.Sin(z * 4.8f)), 1.3f) * radius * 0.33f;
+            hopTarget = moving ? Mathf.Pow(Mathf.Abs(Mathf.Sin(z * 4.8f)), 1.3f) * radius * 0.33f : 0;
+            if (moving) hop = hopTarget;
             body.localPosition = Vector3.up * (radius + hop);
             body.localScale = Vector3.one * radius * 2;
             chargeRadius = ResourceBudget.Radius(shotVolume);
@@ -48,6 +51,8 @@ namespace ClearPath
         {
             AnimateCharge();
             if (!surface) return;
+            hop = Mathf.MoveTowards(hop, hopTarget, Time.deltaTime * 2f);
+            body.localPosition = Vector3.up * (Radius + hop);
             float phase = 0.5f + Mathf.Sin(Time.time * 2.1f) * 0.5f;
             Color glow = Color.Lerp(new Color(0.24f, 0.055f, 0.008f), new Color(0.54f, 0.29f, 0.10f), phase);
             shimmer.SetColor(Emission, glow);
